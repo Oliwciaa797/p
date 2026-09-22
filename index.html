@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Nowoczesny, precyzyjny stoper online ze zmieniającymi się kolorami cyfr co 10 sekund, funkcją międzyczasów i skrótami klawiszowymi.">
+  <title>ChromaTimer • Nowoczesny Stoper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Dynamiczne tło świetlne -->
+  <div class="ambient-glow glow-1" id="ambientGlow1"></div>
+  <div class="ambient-glow glow-2" id="ambientGlow2"></div>
+
+  <main class="app-container">
+    <header class="app-header">
+      <div class="logo-tag">
+        <span class="status-dot" id="statusDot"></span>
+        <span class="logo-text">ChromaTimer</span>
+      </div>
+      <div class="header-controls">
+        <button id="soundToggleBtn" class="icon-button" title="Włącz/wyłącz dźwięk" aria-label="Włącz/wyłącz dźwięk">
+          <svg id="soundIconOn" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+          <svg id="soundIconOff" class="hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Karta stopera -->
+    <section class="stopwatch-card">
+      <!-- Wskaźnik fazy kolorystycznej -->
+      <div class="phase-info">
+        <span class="phase-badge" id="phaseBadge">
+          <span class="phase-color-preview" id="phaseColorPreview"></span>
+          <span id="phaseName">Faza 1: Neon Cyan</span>
+        </span>
+        <span class="phase-countdown" id="phaseCountdown">Kolejny kolor za: 10.0s</span>
+      </div>
+
+      <!-- Wyświetlacz czasu -->
+      <div class="timer-display-wrapper">
+        <div class="timer-display" id="timerDisplay">
+          <div class="time-block time-hours" id="blockHours">
+            <span class="digits" id="hours">00</span>
+            <span class="time-label">GODZ</span>
+          </div>
+          <span class="time-separator" id="sep1">:</span>
+          <div class="time-block time-minutes" id="blockMinutes">
+            <span class="digits" id="minutes">00</span>
+            <span class="time-label">MIN</span>
+          </div>
+          <span class="time-separator" id="sep2">:</span>
+          <div class="time-block time-seconds" id="blockSeconds">
+            <span class="digits" id="seconds">00</span>
+            <span class="time-label">SEK</span>
+          </div>
+          <span class="time-separator-dot" id="sepDot">.</span>
+          <div class="time-block time-millis" id="blockMillis">
+            <span class="digits milliseconds" id="milliseconds">00</span>
+            <span class="time-label">MS</span>
+          </div>
+        </div>
+
+        <!-- Pasek postępu 10 sekund -->
+        <div class="interval-progress-container" title="Postęp do następnej zmiany koloru (10 sekund)">
+          <div class="interval-progress-bar" id="intervalProgressBar"></div>
+        </div>
+      </div>
+
+      <!-- Główne przyciski sterowania -->
+      <div class="controls-panel">
+        <button id="startBtn" class="btn btn-start" title="Rozpocznij odliczanie (Spacja)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <span>Start</span>
+        </button>
+
+        <button id="stopBtn" class="btn btn-stop" disabled title="Zatrzymaj odliczanie (Spacja)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="5" width="4" height="14" rx="1"></rect>
+            <rect x="14" y="5" width="4" height="14" rx="1"></rect>
+          </svg>
+          <span>Stop</span>
+        </button>
+
+        <button id="lapBtn" class="btn btn-secondary" disabled title="Zapisz okrążenie (L)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+            <line x1="4" y1="22" x2="4" y2="15"></line>
+          </svg>
+          <span>Okrążenie</span>
+        </button>
+
+        <button id="resetBtn" class="btn btn-secondary" disabled title="Zresetuj stoper (R)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          <span>Reset</span>
+        </button>
+      </div>
+
+      <!-- Skróty klawiszowe podpowiedź -->
+      <footer class="keyboard-hints">
+        <span><kbd>Spacja</kbd> Start / Stop</span>
+        <span><kbd>L</kbd> Okrążenie</span>
+        <span><kbd>R</kbd> Reset</span>
+      </footer>
+    </section>
+
+    <!-- Sekcja Okrążeń / Międzyczasów -->
+    <section class="laps-section hidden" id="lapsSection">
+      <div class="laps-header">
+        <h2 class="laps-title">Okrążenia / Międzyczasy</h2>
+        <span class="laps-count" id="lapsCount">0 okrążeń</span>
+      </div>
+      <div class="laps-list-wrapper">
+        <table class="laps-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Czas okrążenia</th>
+              <th>Czas całkowity</th>
+              <th>Kolor cyklu</th>
+            </tr>
+          </thead>
+          <tbody id="lapsList">
+            <!-- Wiersze okrążeń generowane dynamicznie -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

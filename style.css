@@ -1,0 +1,587 @@
+/* ==========================================================================
+   ChromaTimer - Modern Dynamic Stopwatch Design System
+   ========================================================================== */
+
+:root {
+  /* Dynamiczne kolory motywu kontrolowane przez JS */
+  --current-color: #00f2fe;
+  --current-color-glow: rgba(0, 242, 254, 0.45);
+  --current-color-soft: rgba(0, 242, 254, 0.15);
+
+  /* Kolory tła i powierzchni */
+  --bg-primary: #07090e;
+  --bg-secondary: #0e121d;
+  --card-bg: rgba(16, 22, 36, 0.7);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-border-glow: rgba(0, 242, 254, 0.25);
+
+  /* Teksty i neutralne */
+  --text-main: #f3f6fc;
+  --text-muted: #8896ab;
+  --text-dim: #4f5d75;
+
+  /* Akcenty akcji */
+  --btn-start-bg: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --btn-start-glow: rgba(16, 185, 129, 0.4);
+  --btn-stop-bg: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  --btn-stop-glow: rgba(239, 68, 68, 0.4);
+  --btn-secondary-bg: rgba(255, 255, 255, 0.06);
+  --btn-secondary-border: rgba(255, 255, 255, 0.12);
+
+  /* Typografia */
+  --font-display: 'JetBrains Mono', monospace;
+  --font-ui: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Promienie i przejścia */
+  --radius-xl: 28px;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  --transition-color: color 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+                      text-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-smooth: all 0.25s ease;
+}
+
+/* Reset i bazy */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  font-family: var(--font-ui);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow-x: hidden;
+  padding: 24px 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tło z dynamicznymi poświatami */
+.ambient-glow {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+  transition: background 0.8s ease, transform 1s ease;
+}
+
+.glow-1 {
+  width: 500px;
+  height: 500px;
+  top: 10%;
+  left: 20%;
+  background: radial-gradient(circle, var(--current-color-glow) 0%, transparent 70%);
+  animation: floatAmbient 12s ease-in-out infinite alternate;
+}
+
+.glow-2 {
+  width: 450px;
+  height: 450px;
+  bottom: 10%;
+  right: 20%;
+  background: radial-gradient(circle, var(--current-color-soft) 0%, transparent 70%);
+  animation: floatAmbient 15s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes floatAmbient {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(40px, -30px) scale(1.15); }
+}
+
+/* Główny kontener aplikacji */
+.app-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Nagłówek */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.logo-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--card-border);
+  padding: 8px 16px;
+  border-radius: 999px;
+  backdrop-filter: blur(12px);
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--text-dim);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.status-dot.running {
+  background-color: var(--current-color);
+  box-shadow: 0 0 12px var(--current-color);
+  animation: pulseDot 1.5s infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.25); opacity: 0.75; }
+}
+
+.logo-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-main);
+}
+
+.icon-button {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.icon-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Główna karta stopera */
+.stopwatch-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  padding: 40px 32px 32px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  transition: border-color 0.6s ease, box-shadow 0.6s ease;
+}
+
+.stopwatch-card.active-glow {
+  border-color: var(--card-border-glow);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6),
+              0 0 40px var(--current-color-soft),
+              inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Faza kolorystyczna */
+.phase-info {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  font-size: 0.85rem;
+}
+
+.phase-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: var(--text-main);
+  font-weight: 500;
+  transition: border-color 0.4s ease;
+}
+
+.phase-color-preview {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--current-color);
+  box-shadow: 0 0 8px var(--current-color);
+  transition: background-color 0.6s ease, box-shadow 0.6s ease;
+}
+
+.phase-countdown {
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.3px;
+}
+
+/* Wyświetlacz czasu */
+.timer-display-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0 28px;
+}
+
+.timer-display {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.time-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.digits {
+  font-size: 4.8rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--current-color);
+  text-shadow: 0 0 24px var(--current-color-glow);
+  transition: var(--transition-color);
+  letter-spacing: -1.5px;
+}
+
+.digits.milliseconds {
+  font-size: 3.2rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.time-separator, .time-separator-dot {
+  font-size: 4.2rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--current-color);
+  opacity: 0.55;
+  margin: 0 4px;
+  transition: var(--transition-color);
+}
+
+.time-separator-dot {
+  font-size: 3.2rem;
+  margin: 0 2px 0 6px;
+}
+
+.time-label {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  margin-top: 6px;
+  text-transform: uppercase;
+}
+
+/* Pasek postępu 10 sekund */
+.interval-progress-container {
+  width: 100%;
+  max-width: 440px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  margin-top: 24px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.interval-progress-bar {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--current-color-soft), var(--current-color));
+  box-shadow: 0 0 10px var(--current-color);
+  border-radius: 999px;
+  transition: width 0.08s linear, background 0.6s ease;
+}
+
+/* Panel sterowania */
+.controls-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  width: 100%;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 28px;
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* Przycisk Start */
+.btn-start {
+  background: var(--btn-start-bg);
+  color: #ffffff;
+  box-shadow: 0 8px 24px var(--btn-start-glow);
+  min-width: 130px;
+}
+
+.btn-start:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px var(--btn-start-glow);
+  filter: brightness(1.1);
+}
+
+/* Przycisk Stop */
+.btn-stop {
+  background: var(--btn-stop-bg);
+  color: #ffffff;
+  box-shadow: 0 8px 24px var(--btn-stop-glow);
+  min-width: 130px;
+}
+
+.btn-stop:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px var(--btn-stop-glow);
+  filter: brightness(1.1);
+}
+
+/* Przyciski pomocnicze (Lap, Reset) */
+.btn-secondary {
+  background: var(--btn-secondary-bg);
+  color: var(--text-main);
+  border-color: var(--btn-secondary-border);
+  backdrop-filter: blur(12px);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+/* Skróty klawiszowe */
+.keyboard-hints {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 24px;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.keyboard-hints span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+kbd {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* Sekcja okrążeń (Laps) */
+.laps-section {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.laps-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--card-border);
+  margin-bottom: 12px;
+}
+
+.laps-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.laps-count {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.laps-list-wrapper {
+  max-height: 220px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-dim) transparent;
+}
+
+.laps-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.laps-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+
+.laps-table td {
+  padding: 10px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.lap-row {
+  transition: background 0.15s ease;
+}
+
+.lap-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.lap-index {
+  font-weight: 600;
+  color: var(--text-muted);
+  width: 48px;
+}
+
+.lap-time, .lap-total {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.lap-time {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.lap-total {
+  color: var(--text-muted);
+}
+
+.lap-fastest .lap-time {
+  color: #10b981;
+}
+
+.lap-slowest .lap-time {
+  color: #ef4444;
+}
+
+.lap-color-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.lap-color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* Klasy pomocnicze */
+.hidden {
+  display: none !important;
+}
+
+/* Responsywność */
+@media (max-width: 600px) {
+  .stopwatch-card {
+    padding: 28px 18px 24px;
+    border-radius: var(--radius-lg);
+  }
+
+  .digits {
+    font-size: 3.2rem;
+  }
+
+  .digits.milliseconds {
+    font-size: 2.2rem;
+  }
+
+  .time-separator {
+    font-size: 2.8rem;
+  }
+
+  .time-separator-dot {
+    font-size: 2.2rem;
+  }
+
+  .controls-panel {
+    gap: 10px;
+  }
+
+  .btn {
+    padding: 12px 20px;
+    font-size: 0.92rem;
+    flex: 1 1 calc(50% - 10px);
+    min-width: unset;
+  }
+
+  .keyboard-hints {
+    display: none;
+  }
+}
